@@ -6,6 +6,12 @@ iCloud キーチェーンに保存した ed25519 鍵を、各 Mac の Touch ID �
 - サーバからは普通の `sk-ssh-ed25519@openssh.com` 鍵に見えます。`verify-required` を付ければ、Touch ID を通らない署名は受け付けません。
 - OpenSSH には手を加えません。`SecurityKeyProvider` で dylib を読み込ませるだけです。YubiKey などの FIDO 鍵と並べて使えます。
 
+`ssh` でログインするたびに、macOS の Touch ID ダイアログが出ます。どの鍵で署名するか（鍵の application 名）が表示されるので、確かめてから指を置きます。
+
+<img src="docs/images/touch-id-dialog-ja.jpg" width="284" alt="Touch ID のダイアログ。「sk-icloud-keychain で次の操作を実行しようとしています: SSH 鍵「ssh:sk-icloud-keychain-dev」で署名」と表示され、右下に雲と鍵穴のアイコンが付いている">
+
+説明文は Mac の言語設定に合わせて日本語か英語で表示され、右下には sk-icloud-keychain のアイコンが付きます。
+
 方式を選んだ経緯は [docs/SSH 鍵保護方式 4 案の比較.html](docs/SSH%20鍵保護方式%204%20案の比較.html)、全体の構成は [docs/architecture.html](docs/architecture.html)、provider と helper の間の通信は [docs/protocol.md](docs/protocol.md) にまとめてあります。
 
 ## 仕組み
