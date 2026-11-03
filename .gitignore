@@ -8,3 +8,5 @@ xcuserdata/
 # Mac-to-Mac requests over Dropbox (only the protocol README is tracked)
 handoff/*
 !handoff/README.md
+# Your own Team ID / bundle ID (see config.mk.example)
+config.mk

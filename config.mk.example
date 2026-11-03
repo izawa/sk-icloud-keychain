@@ -1,0 +1,9 @@
+# Copy to config.mk (not committed) and fill in your own values.
+
+# Your Apple Developer Program Team ID (10 characters).
+# Find it at https://developer.apple.com/account under Membership details.
+TEAM_ID = ABCDE12345
+
+# A bundle ID under a domain you control. Keys live in the keychain access
+# group "<TEAM_ID>.<BUNDLE_ID>", so keep both values once you create keys.
+BUNDLE_ID = com.example.sk-icloud-keychain

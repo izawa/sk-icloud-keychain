@@ -10,7 +10,14 @@ INSTALL_DIR ?= /Applications
 PROVIDER := $(INSTALL_DIR)/sk-icloud-keychain.app/Contents/Frameworks/libsk-icloud-keychain.dylib
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
-.PHONY: all clean test helper test-helper install uninstall
+# Your Apple Developer Team ID and a bundle ID of your own, from config.mk
+# (copy config.mk.example) or the command line. The keychain access group
+# is "<TEAM_ID>.<BUNDLE_ID>"; changing either later orphans existing keys.
+-include config.mk
+TEAM_ID ?=
+BUNDLE_ID ?=
+
+.PHONY: all clean test helper test-helper install uninstall check-config
 
 all: $(DYLIB) helper
 
@@ -18,13 +25,19 @@ $(DYLIB): provider/sk-icloud-keychain.c provider/sk-api.h
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -dynamiclib -install_name @rpath/libsk-icloud-keychain.dylib -o $@ $<
 
-# Signs with team FJYY683YHH (Apple Development). The destination must be
-# this Mac, not "generic/platform=macOS": only then does
+check-config:
+	@test -n "$(TEAM_ID)" -a -n "$(BUNDLE_ID)" || { \
+	    echo "TEAM_ID and BUNDLE_ID are not set. Copy config.mk.example to config.mk" >&2; \
+	    echo "and fill them in, or run: make install TEAM_ID=... BUNDLE_ID=..." >&2; exit 1; }
+
+# Signs with Apple Development for TEAM_ID. The destination must be this
+# Mac, not "generic/platform=macOS": only then does
 # -allowProvisioningDeviceRegistration add this Mac to the profile.
-helper:
+helper: check-config
 	cd helper && xcodebuild -project SKICloudKeychain.xcodeproj -scheme sk-icloud-keychain \
 	    -configuration Release -destination "platform=macOS,arch=$(shell uname -m)" -derivedDataPath ../$(BUILD)/xcode \
-	    -allowProvisioningUpdates -allowProvisioningDeviceRegistration -quiet build
+	    -allowProvisioningUpdates -allowProvisioningDeviceRegistration -quiet \
+	    DEVELOPMENT_TEAM="$(TEAM_ID)" PRODUCT_BUNDLE_IDENTIFIER="$(BUNDLE_ID)" build
 
 # The app holds both the helper and the provider dylib. Keys stay in
 # iCloud Keychain, so uninstalling does not delete them.

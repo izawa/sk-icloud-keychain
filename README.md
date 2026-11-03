@@ -37,16 +37,29 @@ app の中に dylib を同梱しているので、インストールすると次
 - Xcode と、Apple Developer Program に加入した Apple Account（helper の署名用）。普段の Apple Account と別のアカウントでかまいません
 - OpenSSH 8.2 以降。Homebrew の 10.6p1 と、macOS 純正の 10.3 で動作を確認しています
 
-Team ID は `FJYY683YHH` に固定しています。別の Team で使う場合は、`helper/SKICloudKeychain.xcodeproj` の `DEVELOPMENT_TEAM`、bundle ID、`docs/protocol.md` の access group を書き換えてください。access group には Team ID が含まれるので、**Team を変えると、それまでに作った鍵は読めなくなります。**
-
 ## インストール（Mac ごと）
 
 1. Xcode に開発用 Apple Account でサインインします（Settings → Apple Accounts）。
-2. 次を実行します。初回は Mac が端末として登録され、署名用の鍵を使ってよいかの確認ダイアログが出ます。ログインパスワードを入れて「常に許可」を選んでください。
+2. **自分の Team ID と bundle ID を設定します（必須）。** helper は、あなたの Apple Developer Program の Team で署名する必要があります。設定ファイルの見本をコピーして、2 つの値を書き換えてください。
 
-```bash
-make install
-```
+   ```bash
+   cp config.mk.example config.mk
+   ```
+
+   | 値 | 書くもの |
+   |---|---|
+   | `TEAM_ID` | Team ID（英数字 10 文字）。[developer.apple.com/account](https://developer.apple.com/account) の Membership details に表示されます |
+   | `BUNDLE_ID` | 自分が持っているドメインを逆にした名前（例: `com.example.sk-icloud-keychain`） |
+
+   `config.mk` は Git の管理外です。リポジトリを Dropbox などで共有していれば、ほかの Mac にもそのまま届きます。ファイルを作らずに `make install TEAM_ID=… BUNDLE_ID=…` と指定することもできます。
+
+   鍵は access group `<TEAM_ID>.<BUNDLE_ID>` に保存されます。**鍵を作ったあとでどちらかを変えると、それまでの鍵は読めなくなります**（サーバへの登録からやり直しになります）。最初に決めた値を使い続けてください。
+
+3. 次を実行します。初回は Mac が端末として登録され、署名用の鍵を使ってよいかの確認ダイアログが出ます。ログインパスワードを入れて「常に許可」を選んでください。
+
+   ```bash
+   make install
+   ```
 
 app は、ビルドした Mac 専用の署名になります（開発用プロファイルは登録した Mac でしか起動しません）。他の Mac にはコピーせず、それぞれの Mac で `make install` してください。`make` はビルドの宛先をその Mac にしているので、新しい Mac は自動で Team に登録されます。プロファイルの期限は 1 年なので、1 年ごとに `make install` をやり直します。
 
@@ -110,7 +123,7 @@ $H delete <UUID>        # 鍵を削除（Touch ID が必要。iCloud 経由で�
 
 | 観点 | この方式での扱い |
 |---|---|
-| 秘密鍵を読めるもの | iCloud キーチェーン（E2E 暗号化）と、access group `FJYY683YHH.org.izawa.sk-icloud-keychain` に属する app、つまり同じ Team で署名した helper だけ |
+| 秘密鍵を読めるもの | iCloud キーチェーン（E2E 暗号化）と、access group `<TEAM_ID>.<BUNDLE_ID>` に属する app、つまり同じ Team で署名した helper だけ |
 | 本人確認 | helper が LocalAuthentication で Touch ID を求めます（生体認証のみ、パスワードでの代替なし）。これはソフトウェアでかけるゲートで、Secure Enclave が鍵の使用そのものを強制するわけではありません。生体認証の ACL を付けたキーチェーン項目は同期できないためです |
 | helper を呼べるもの | 同じユーザーで動くプロセスなら helper を起動できます。ただし署名のたびに Touch ID が要り、ダイアログには鍵の application（`ssh:…`）が表示されます |
 | 鍵の取り違え | 登録時と違う application での署名は拒否します |
@@ -127,6 +140,8 @@ tests/e2e.sh    # 鍵の作成・署名・検証・-K の通し確認（Touch ID
 ```
 
 app のアイコンは `helper/App/Icon/AppIcon.svg` が原本です。直したら `helper/App/Icon/make-icns.sh`（`rsvg-convert` が必要）で `AppIcon.icns` を作り直してください。Touch ID のダイアログの右下には、このアイコンが表示されます。アイコンを変えたときは、`helper/SKICloudKeychain.xcodeproj` の `CURRENT_PROJECT_VERSION` も上げてください。macOS はアイコンをバージョンごとにキャッシュするので、同じバージョンのままだと、すでに入れてある Mac では古いアイコンが出続けることがあります。`make install` は入れ直した app を LaunchServices に登録し直しますが、それでも古いアイコン（汎用のグリッド）のままなら、ログアウトしてログインし直すとキャッシュが消えて反映されます。
+
+`spike/` は、同期するキーチェーン項目に署名が必要かを確かめた最初の実験の記録です。作者の Team ID のまま残してあり、ビルドには使いません。
 
 `SK_ICLOUD_KEYCHAIN_DEBUG=1` を設定すると、provider と helper が標準エラーに経過を出します。`SK_ICLOUD_KEYCHAIN_HELPER` で helper の場所を差し替えられます。
 

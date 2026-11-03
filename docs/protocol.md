@@ -66,9 +66,9 @@ synchronizable generic-password item in the data-protection keychain:
 
 | attribute         | value                                                      |
 |-------------------|------------------------------------------------------------|
-| service           | `org.izawa.sk-icloud-keychain.key`                         |
+| service           | `org.izawa.sk-icloud-keychain.key` (fixed for every install) |
 | account           | the UUID                                                   |
-| access group      | `FJYY683YHH.org.izawa.sk-icloud-keychain`                  |
+| access group      | `<TEAM_ID>.<BUNDLE_ID>` from `config.mk`, as in the entitlement |
 | accessible        | `WhenUnlocked` (synchronizable)                            |
 | value data        | raw 32-byte ed25519 private key                            |
 | generic attribute | property list: version, application, flags, public key, created |

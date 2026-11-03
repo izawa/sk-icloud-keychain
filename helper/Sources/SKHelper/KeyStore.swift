@@ -15,11 +15,14 @@ struct StoredKey: Codable {
 /// ed25519 private keys stored as synchronizable generic passwords in the
 /// data-protection keychain, readable only by apps in our access group.
 enum KeyStore {
+    /// Fixed item name; the access group below is what separates installs.
     static let service = "org.izawa.sk-icloud-keychain.key"
 
+    /// "<Team ID>.<bundle ID>", matching the keychain-access-groups
+    /// entitlement. Changing the team or bundle ID orphans existing keys.
     static var accessGroup: String {
         let prefix = Bundle.main.object(forInfoDictionaryKey: "AppIdentifierPrefix") as? String ?? ""
-        return prefix + "org.izawa.sk-icloud-keychain"
+        return prefix + (Bundle.main.bundleIdentifier ?? "")
     }
 
     // Every query must name kSecAttrSynchronizable, or synced items are not matched.
