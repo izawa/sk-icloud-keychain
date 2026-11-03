@@ -8,6 +8,7 @@ HELPER_APP := $(BUILD)/xcode/Build/Products/Release/sk-icloud-keychain.app
 # Same path on every Mac, so a Dropbox-shared ~/.ssh/config works everywhere.
 INSTALL_DIR ?= /Applications
 PROVIDER := $(INSTALL_DIR)/sk-icloud-keychain.app/Contents/Frameworks/libsk-icloud-keychain.dylib
+LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
 .PHONY: all clean test helper test-helper install uninstall
 
@@ -27,10 +28,15 @@ helper:
 
 # The app holds both the helper and the provider dylib. Keys stay in
 # iCloud Keychain, so uninstalling does not delete them.
+# LaunchServices keeps the old record of a replaced bundle (and registers
+# the build product too), so the Touch ID dialog can show a stale icon.
+# Re-register the installed copy and drop the build product's record.
 install: helper
 	rm -rf "$(INSTALL_DIR)/sk-icloud-keychain.app"
 	ditto "$(HELPER_APP)" "$(INSTALL_DIR)/sk-icloud-keychain.app"
 	codesign --verify --strict "$(INSTALL_DIR)/sk-icloud-keychain.app"
+	$(LSREGISTER) -u "$(HELPER_APP)"
+	$(LSREGISTER) -f "$(INSTALL_DIR)/sk-icloud-keychain.app"
 	@echo "SecurityKeyProvider $(PROVIDER)"
 
 uninstall:
