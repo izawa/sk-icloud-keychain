@@ -1,0 +1,10 @@
+.DS_Store
+build/
+DerivedData/
+xcuserdata/
+*.dylib
+*.o
+
+# Mac-to-Mac requests over Dropbox (only the protocol README is tracked)
+handoff/*
+!handoff/README.md

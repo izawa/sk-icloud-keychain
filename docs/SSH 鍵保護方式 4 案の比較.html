@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SSH 鍵保護方式の比較 — Touch ID でどの Mac からも使える構成の選定</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #F6F7F5;
+    --paper: #FFFFFF;
+    --ink: #1C2129;
+    --ink-2: #4A535E;
+    --ink-3: #7A838D;
+    --rule: #D5DADF;
+    --rule-strong: #AEB6BE;
+    --pick: #1F5F8B;
+    --pick-ink: #163F5C;
+    --pick-tint: #E6EFF6;
+    --pick-tint-2: #D4E3F0;
+    --good: #2E7D4F;
+    --mid: #B5741C;
+    --bad: #A63A2B;
+    --group-a: #EFE7DA;
+    --group-b: #E3EAF2;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15191E;
+      --paper: #1C2127;
+      --ink: #E8ECEF;
+      --ink-2: #B4BCC5;
+      --ink-3: #7F8994;
+      --rule: #2F373F;
+      --rule-strong: #4A545E;
+      --pick: #6FB0E0;
+      --pick-ink: #BFDCF2;
+      --pick-tint: #1D2C3A;
+      --pick-tint-2: #24384B;
+      --good: #6FBF8E;
+      --mid: #D9A253;
+      --bad: #E0735F;
+      --group-a: #2E2A22;
+      --group-b: #22292F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15191E;
+    --paper: #1C2127;
+    --ink: #E8ECEF;
+    --ink-2: #B4BCC5;
+    --ink-3: #7F8994;
+    --rule: #2F373F;
+    --rule-strong: #4A545E;
+    --pick: #6FB0E0;
+    --pick-ink: #BFDCF2;
+    --pick-tint: #1D2C3A;
+    --pick-tint-2: #24384B;
+    --good: #6FBF8E;
+    --mid: #D9A253;
+    --bad: #E0735F;
+    --group-a: #2E2A22;
+    --group-b: #22292F;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 40px 28px 56px;
+  }
+
+  /* ---------- header ---------- */
+  header { margin-bottom: 28px; }
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.35;
+    margin: 0 0 10px;
+  }
+  .thesis {
+    font-size: 15px;
+    color: var(--ink-2);
+    max-width: 62em;
+    margin: 0;
+  }
+  .thesis strong { color: var(--ink); font-weight: 500; }
+
+  /* ---------- table ---------- */
+  .table-wrap { overflow-x: auto; }
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    min-width: 960px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+  }
+  th:last-child, td:last-child { border-right: 0; }
+  tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+  thead th {
+    background: var(--paper);
+    border-bottom: 2px solid var(--rule-strong);
+    font-weight: 700;
+    font-size: 14.5px;
+    line-height: 1.4;
+  }
+  thead th small {
+    display: block;
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--ink-3);
+    margin-top: 3px;
+  }
+  thead th.item { width: 12.5%; color: var(--ink-3); font-weight: 500; font-size: 12.5px; }
+  tbody th {
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.45;
+  }
+  tbody th em {
+    font-style: normal;
+    display: block;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    margin-top: 2px;
+  }
+  td { font-size: 13px; }
+  td p { margin: 0; }
+  td .sub { color: var(--ink-3); font-size: 12px; margin-top: 3px; }
+  td code, .concl code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    background: color-mix(in srgb, var(--ink) 7%, transparent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* rating marks: encoded as a leading glyph, color carries the same meaning as the glyph */
+  .r { display: inline-block; width: 1.2em; font-weight: 700; }
+  .r-good { color: var(--good); }
+  .r-mid  { color: var(--mid); }
+  .r-bad  { color: var(--bad); }
+
+  /* the chosen column runs through the whole table as one band */
+  .pick-col { background: var(--pick-tint); }
+  thead th.pick-col {
+    background: var(--pick-tint-2);
+    color: var(--pick-ink);
+    border-bottom-color: var(--pick);
+    position: relative;
+  }
+  thead th.pick-col::before {
+    content: "今回の実装";
+    position: absolute;
+    top: -1px; left: 14px;
+    transform: translateY(-100%);
+    background: var(--pick);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 3px 3px 0 0;
+    letter-spacing: 0.04em;
+  }
+  thead th.pick-col small { color: var(--pick-ink); opacity: .8; }
+  thead { height: auto; }
+  .table-wrap { padding-top: 22px; }
+
+  .legend {
+    margin: 10px 2px 0;
+    font-size: 12px;
+    color: var(--ink-3);
+    display: flex; gap: 18px; flex-wrap: wrap;
+  }
+
+  /* ---------- lineage ---------- */
+  .lower {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 24px;
+    margin-top: 36px;
+    align-items: start;
+  }
+  h2 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 12px;
+  }
+  .lineage { display: grid; gap: 10px; }
+  .axis {
+    display: grid;
+    grid-template-columns: 9.5em 1fr;
+    gap: 0 14px;
+    padding: 10px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .axis:last-child { border-bottom: 1px solid var(--rule); }
+  .axis-name { font-size: 12.5px; color: var(--ink-2); font-weight: 500; line-height: 1.45; }
+  .buckets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .bucket {
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .bucket-a { background: var(--group-a); }
+  .bucket-b { background: var(--group-b); }
+  .bucket b { display: block; font-weight: 700; margin-bottom: 2px; font-size: 12.5px; }
+  .bucket .members { color: var(--ink-2); }
+  .bucket .members .me { color: var(--pick); font-weight: 700; }
+  .bucket .note { color: var(--ink-3); font-size: 11.5px; margin-top: 2px; }
+
+  /* ---------- conclusion ---------- */
+  .concl {
+    background: var(--pick-tint);
+    border-left: 4px solid var(--pick);
+    border-radius: 0 6px 6px 0;
+    padding: 18px 20px 16px;
+  }
+  .concl h2 { color: var(--pick-ink); }
+  .concl p { margin: 0 0 10px; font-size: 13.5px; }
+  .concl ul { margin: 0 0 12px; padding-left: 1.3em; font-size: 13.5px; }
+  .concl li { margin: 2px 0; }
+  .concl li .r { width: 1.35em; }
+  .concl .trade {
+    border-top: 1px solid var(--pick-tint-2);
+    padding-top: 10px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .concl .trade b { color: var(--ink); font-weight: 700; }
+
+  @media (max-width: 860px) {
+    .page { padding: 28px 16px 40px; }
+    h1 { font-size: 21px; }
+    .lower { grid-template-columns: 1fr; }
+    .axis { grid-template-columns: 1fr; gap: 6px; }
+  }
+  @media print {
+    body { background: #fff; font-size: 12px; }
+    .page { padding: 0; max-width: none; }
+    table { min-width: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <h1>SSH 鍵の保護方式 4 案の比較 — Touch ID で、どの Mac からも、同じ鍵で</h1>
+  <p class="thesis">
+    要件は「<strong>認証は Mac 内蔵の指紋センサー</strong>」「<strong>手持ちの全 Mac で同じ鍵</strong>」「<strong>1Password への新規依存を作らない</strong>」「<strong>1 台のハードウェアの故障に賭けない</strong>」の 4 つ。
+    鍵をハードウェアに閉じ込める案は「全 Mac で同じ鍵」と原理的に両立しないため、鍵を同期する側の設計で、依存先を Apple ID と自作コードだけに絞ったのが今回の案。
+  </p>
+</header>
+
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th class="item">比較項目</th>
+      <th>Secure Enclave 方式<small>sc_auth / Secretive。鍵をチップ内で生成</small></th>
+      <th>1Password SSH agent 方式<small>鍵を vault に保存、agent が Touch ID で解錠</small></th>
+      <th>YubiKey Bio 方式<small>FIDO2 ハードウェア鍵。ed25519-sk</small></th>
+      <th class="pick-col">iCloud Keychain + 自作 sk-api provider<small>同期 Keychain に鍵、自作 dylib が Touch ID を要求</small></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>秘密鍵の所在<em>誰が読めるか</em></th>
+      <td><p><span class="r r-good">●</span>その Mac の Secure Enclave 内のみ</p><p class="sub">OS を含め、誰も平文を読めない</p></td>
+      <td><p><span class="r r-mid">◐</span>1Password vault 内（E2E 暗号化で同期）</p><p class="sub">1Password アプリが復号する。解錠中はアプリ経由で読める</p></td>
+      <td><p><span class="r r-good">●</span>YubiKey 内のみ</p><p class="sub">誰も平文を読めない</p></td>
+      <td class="pick-col"><p><span class="r r-mid">◐</span>iCloud Keychain 内（E2E 暗号化で同期）</p><p class="sub">自作 provider が復号する。同一ユーザで Keychain アクセス権を得たプロセスも読める（passkey・1Password と同じモデル）</p></td>
+    </tr>
+    <tr>
+      <th>鍵のコピー・抽出耐性<em>鍵そのものが外に出るか</em></th>
+      <td><p><span class="r r-good">●</span>物理的に取り出せない</p><p class="sub">複製は不可能。盗まれるなら Mac ごと</p></td>
+      <td><p><span class="r r-mid">◐</span>取り出せる</p><p class="sub">vault 解錠後はエクスポート可。保護は vault の暗号化に依存</p></td>
+      <td><p><span class="r r-good">●</span>物理的に取り出せない</p><p class="sub">複製は不可能。盗まれるならキーごと</p></td>
+      <td class="pick-col"><p><span class="r r-mid">◐</span>取り出せる</p><p class="sub">同期する以上、鍵は「データ」として存在する。保護は iCloud の E2E 暗号化と Mac のログイン保護に依存</p></td>
+    </tr>
+    <tr>
+      <th>生体認証を強制する主体<em>指紋を「誰が」要求するか</em></th>
+      <td><p><span class="r r-good">●</span>ハードウェア</p><p class="sub">Secure Enclave の ACL。ソフトウェアでは迂回できない</p></td>
+      <td><p><span class="r r-mid">◐</span>ソフトウェア</p><p class="sub">1Password アプリが Touch ID をゲート。アプリが侵害されると迂回される</p></td>
+      <td><p><span class="r r-good">●</span>ハードウェア</p><p class="sub">YubiKey 本体の指紋センサー。Mac 側の状態に依らない</p></td>
+      <td class="pick-col"><p><span class="r r-mid">◐</span>ソフトウェア</p><p class="sub">自作 provider が LocalAuthentication 経由で Touch ID をゲート。1Password と同じ強度、ただしコードは自分で監査できる</p></td>
+    </tr>
+    <tr>
+      <th>どの Mac でも使えるか<em>同じ鍵を同期できるか</em></th>
+      <td><p><span class="r r-bad">○</span>使えない</p><p class="sub">Mac ごとに別の鍵。サーバ側に台数分の公開鍵を登録する運用になる</p></td>
+      <td><p><span class="r r-good">●</span>使える</p><p class="sub">1Password にログインした全 Mac</p></td>
+      <td><p><span class="r r-mid">◐</span>キーを差せば使える</p><p class="sub">Mac どころか OS を問わない。ただし物理的に持ち歩く必要がある</p></td>
+      <td class="pick-col"><p><span class="r r-good">●</span>使える</p><p class="sub">同一 Apple ID の全 Mac。新しい Mac では <code>ssh-keygen -K</code> で鍵ファイルを復元するだけ</p></td>
+    </tr>
+    <tr>
+      <th>有償サービス・特定ベンダーへの依存</th>
+      <td><p><span class="r r-good">●</span>なし</p><p class="sub">Apple 純正機能のみ、無償</p></td>
+      <td><p><span class="r r-bad">○</span>1Password の有償サブスクリプション</p><p class="sub">agent の実装・方針変更・解約にすべて引きずられる</p></td>
+      <td><p><span class="r r-mid">◐</span>有償ハードウェア</p><p class="sub">サービス依存はないが、Yubico 製品の供給と品質に依存</p></td>
+      <td class="pick-col"><p><span class="r r-good">●</span>なし</p><p class="sub">Apple ID（無償範囲の iCloud Keychain）と自作コードのみ。追加課金なし</p></td>
+    </tr>
+    <tr>
+      <th>故障・紛失時の影響<em>単一障害点とリカバリ</em></th>
+      <td><p><span class="r r-mid">◐</span>Mac を失うとその鍵は消滅</p><p class="sub">他の Mac の鍵を事前に登録していれば継続できる。予備登録が前提</p></td>
+      <td><p><span class="r r-mid">◐</span>端末故障には強い</p><p class="sub">vault が残れば継続。ただし 1Password 解約・障害が全鍵の単一障害点</p></td>
+      <td><p><span class="r r-bad">○</span>キーの故障・紛失でその鍵は消滅</p><p class="sub">予備キーの別登録が必須。実際に突然故障した経験あり。信頼して主にできない</p></td>
+      <td class="pick-col"><p><span class="r r-good">●</span>端末故障に強い</p><p class="sub">Mac が壊れても iCloud に残る。単一障害点は Apple ID（passkey と同じ依存先）</p></td>
+    </tr>
+    <tr>
+      <th>使用時の操作</th>
+      <td><p><span class="r r-good">●</span>Touch ID に触れる</p></td>
+      <td><p><span class="r r-good">●</span>Touch ID に触れる</p><p class="sub">1Password の承認ダイアログ経由</p></td>
+      <td><p><span class="r r-mid">◐</span>キーを挿して、キー側の指紋センサーに触れる</p><p class="sub">持ち忘れ・ポート占有・挿し直しが発生する</p></td>
+      <td class="pick-col"><p><span class="r r-good">●</span>Touch ID に触れる</p><p class="sub">macOS 標準の LocalAuthentication ダイアログ</p></td>
+    </tr>
+    <tr>
+      <th>サーバ側から見た鍵種別<em>authorized_keys に入るもの</em></th>
+      <td><p>通常の <code>ecdsa-sha2-nistp256</code></p><p class="sub">特別な設定なし</p></td>
+      <td><p>通常の <code>ssh-ed25519</code></p><p class="sub">特別な設定なし</p></td>
+      <td><p><code>sk-ssh-ed25519@openssh.com</code></p><p class="sub">UV フラグ付き。OpenSSH 8.2 以降</p></td>
+      <td class="pick-col"><p><code>sk-ssh-ed25519@openssh.com</code></p><p class="sub">UV フラグ付き。YubiKey と同じ種別なので、既存の sk 鍵運用にそのまま乗る</p></td>
+    </tr>
+    <tr>
+      <th>導入コスト</th>
+      <td><p><span class="r r-good">●</span>コマンド 1 回</p><p class="sub"><code>sc_auth create-ctk-identity</code></p></td>
+      <td><p><span class="r r-good">●</span>設定のみ</p><p class="sub">agent を有効化して <code>SSH_AUTH_SOCK</code> を向ける</p></td>
+      <td><p><span class="r r-good">●</span>コマンド 1 回</p><p class="sub"><code>ssh-keygen -t ed25519-sk</code></p></td>
+      <td class="pick-col"><p><span class="r r-mid">◐</span>dylib の自作が必要</p><p class="sub"><code>sk_enroll</code> / <code>sk_sign</code> / <code>sk_load_resident_keys</code> の 3 関数と、Keychain アクセス用のコード署名</p></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<div class="legend">
+  <span><span class="r r-good">●</span>要件に対して十分</span>
+  <span><span class="r r-mid">◐</span>条件付き・トレードオフあり</span>
+  <span><span class="r r-bad">○</span>要件を満たさない</span>
+</div>
+
+<div class="lower">
+  <section>
+    <h2>どの方式が同じセキュリティ要素に立脚しているか</h2>
+    <div class="lineage">
+      <div class="axis">
+        <div class="axis-name">鍵の保護モデル</div>
+        <div class="buckets">
+          <div class="bucket bucket-a"><b>ハードウェア拘束</b><div class="members">Secure Enclave ／ YubiKey Bio</div><div class="note">鍵は「出ない」。代わりに端末ごとに別鍵になる</div></div>
+          <div class="bucket bucket-b"><b>同期ストア + E2E 暗号化 + ソフトウェアの生体認証ゲート</b><div class="members">1Password ／ <span class="me">iCloud + 自作 provider</span></div><div class="note">Web の passkey も同じモデル。鍵は「出るが暗号化されている」</div></div>
+        </div>
+      </div>
+      <div class="axis">
+        <div class="axis-name">指紋を読むハードウェア</div>
+        <div class="buckets">
+          <div class="bucket bucket-b"><b>Mac 内蔵の Touch ID</b><div class="members">Secure Enclave ／ 1Password ／ <span class="me">iCloud + 自作 provider</span></div></div>
+          <div class="bucket bucket-a"><b>外付けキーのセンサー</b><div class="members">YubiKey Bio</div></div>
+        </div>
+      </div>
+      <div class="axis">
+        <div class="axis-name">サーバ側から見た鍵の形式</div>
+        <div class="buckets">
+          <div class="bucket bucket-a"><b>通常の公開鍵</b><div class="members">Secure Enclave ／ 1Password</div></div>
+          <div class="bucket bucket-b"><b>FIDO 形式の sk 鍵（UV フラグ）</b><div class="members">YubiKey Bio ／ <span class="me">iCloud + 自作 provider</span></div><div class="note">サーバからは両者の区別がつかない</div></div>
+        </div>
+      </div>
+      <div class="axis">
+        <div class="axis-name">最終的に信頼している相手</div>
+        <div class="buckets">
+          <div class="bucket bucket-a"><b>チップ・デバイスのメーカー</b><div class="members">Secure Enclave → Apple のシリコン ／ YubiKey → Yubico</div></div>
+          <div class="bucket bucket-b"><b>アカウントと同期基盤</b><div class="members">1Password → 1Password 社 ／ <span class="me">iCloud + 自作 provider → Apple ID</span></div><div class="note">Apple ID は passkey ですでに依存している相手</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="concl">
+    <h2>結論：iCloud Keychain + 自作 sk-api provider を選ぶ</h2>
+    <p>4 つの要件をすべて満たすのはこの案だけ。</p>
+    <ul>
+      <li><span class="r r-good">●</span>Mac 内蔵の指紋で認証できる（YubiKey 方式を外す理由）</li>
+      <li><span class="r r-good">●</span>全 Mac で同じ鍵が使える（Secure Enclave 方式を外す理由）</li>
+      <li><span class="r r-good">●</span>1Password への新しい依存を作らない（1Password 方式を外す理由）</li>
+      <li><span class="r r-good">●</span>1 台のハードウェアが単一障害点にならない</li>
+    </ul>
+    <p>依存先は Apple ID と自作コードだけに絞られ、サーバ側は既存の YubiKey と同じ sk 鍵として扱えるため、YubiKey Bio をそのまま予備として並走させられる。</p>
+    <div class="trade">
+      <b>受け入れるトレードオフ：</b>鍵はハードウェアに拘束されず、生体認証ゲートはソフトウェアが担う。これは 1Password SSH agent と同じ保護モデルであり、「鍵が同期される」ことと表裏一体なので回避はできない。加えて、小さな dylib を自分で保守する責任を負う。
+    </div>
+  </aside>
+</div>
+
+</div>
+</body>
+</html>

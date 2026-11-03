@@ -1,0 +1,448 @@
+<title>sk-icloud-keychain 構成図</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Layout: one diagram band up top, then three reference blocks (署名 / iCloud / 各 Mac の作業) and the login sequence. */
+  :root {
+    --bg: #F5F6F4;
+    --paper: #FFFFFF;
+    --ink: #1C2129;
+    --ink-2: #4A535E;
+    --ink-3: #7A838D;
+    --rule: #D5DADF;
+    --rule-strong: #AEB6BE;
+    --sign: #A4561A;        /* 署名・開発用アカウント */
+    --sign-tint: #F7EADF;
+    --sync: #1F6F78;        /* iCloud / Dropbox の同期 */
+    --sync-tint: #E0F0F1;
+    --run: #1F4F8B;         /* 実行時の呼び出し */
+    --run-tint: #E5EDF7;
+    --todo: #8A6D00;
+    --todo-tint: #FBF3D6;
+    --ok: #2E7D4F;
+    --font-body: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15191E; --paper: #1C2127; --ink: #E8ECEF; --ink-2: #B4BCC5; --ink-3: #808A95;
+      --rule: #2F373F; --rule-strong: #4A545E;
+      --sign: #E39A5E; --sign-tint: #3A2A1E;
+      --sync: #5EC2CC; --sync-tint: #17312F;
+      --run: #7FB0EA; --run-tint: #1C2A3B;
+      --todo: #E3C25A; --todo-tint: #332C14;
+      --ok: #6FBF8E;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15191E; --paper: #1C2127; --ink: #E8ECEF; --ink-2: #B4BCC5; --ink-3: #808A95;
+    --rule: #2F373F; --rule-strong: #4A545E;
+    --sign: #E39A5E; --sign-tint: #3A2A1E;
+    --sync: #5EC2CC; --sync-tint: #17312F;
+    --run: #7FB0EA; --run-tint: #1C2A3B;
+    --todo: #E3C25A; --todo-tint: #332C14;
+    --ok: #6FBF8E;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 1160px;
+    margin: 0 auto;
+    padding-block: 36px 56px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid;
+    gap: 40px;
+  }
+  code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+  code { background: var(--run-tint); padding: 0 4px; border-radius: 3px; overflow-wrap: anywhere; }
+
+  header { display: grid; gap: 12px; }
+  h1 { font-size: 27px; line-height: 1.3; margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
+  .lead { margin: 0; max-width: 46em; font-size: 15px; color: var(--ink-2); }
+  .lead strong { color: var(--ink); font-weight: 700; }
+  .status { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid var(--rule-strong); color: var(--ink-2); background: var(--paper);
+  }
+  .chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
+  .chip.ok::before { background: var(--ok); }
+  .chip.todo::before { background: var(--todo); }
+
+  section { display: grid; gap: 14px; }
+  h2 {
+    font-size: 18px; margin: 0; text-wrap: balance;
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  h2 .tag { font-size: 11.5px; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 500; }
+  .note { margin: 0; color: var(--ink-2); max-width: 60em; }
+
+  /* ---------- diagram ---------- */
+  .figure { background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; overflow-x: auto; }
+  .figure svg { display: block; width: 100%; min-width: 980px; height: auto; }
+  svg text { font-family: var(--font-body); fill: var(--ink); }
+  svg .t-title { font-size: 15px; font-weight: 700; }
+  svg .t-box { font-size: 13px; font-weight: 700; }
+  svg .t-sub { font-size: 11.5px; fill: var(--ink-2); }
+  svg .t-mono { font-family: var(--font-mono); font-size: 10.5px; fill: var(--ink-2); }
+  svg .t-sign { fill: var(--sign); font-weight: 700; font-size: 11.5px; }
+  svg .t-sync { fill: var(--sync); font-weight: 700; font-size: 11.5px; }
+  svg .t-run { fill: var(--run); font-size: 11px; }
+  svg .t-todo { fill: var(--todo); font-weight: 700; font-size: 11.5px; }
+  svg .mac { fill: var(--bg); stroke: var(--rule-strong); stroke-width: 1.5; }
+  svg .box { fill: var(--paper); stroke: var(--rule-strong); stroke-width: 1.2; }
+  svg .box-run { fill: var(--run-tint); stroke: var(--run); stroke-width: 1.2; }
+  svg .box-sign { fill: var(--sign-tint); stroke: var(--sign); stroke-width: 1.8; }
+  svg .box-sync { fill: var(--sync-tint); stroke: var(--sync); stroke-width: 1.5; }
+  svg .box-inner { fill: var(--paper); stroke: var(--rule-strong); stroke-width: 1; }
+  svg .ln-run { stroke: var(--run); stroke-width: 1.6; fill: none; }
+  svg .ln-sync { stroke: var(--sync); stroke-width: 2; fill: none; stroke-dasharray: 7 5; }
+  svg .ln-sign { stroke: var(--sign); stroke-width: 1.6; fill: none; stroke-dasharray: 2 4; stroke-linecap: round; }
+  svg .ah-run { fill: var(--run); }
+  svg .ah-sync { fill: var(--sync); }
+  svg .ah-sign { fill: var(--sign); }
+  svg .badge-sign { fill: var(--sign); }
+  svg .badge-text { fill: var(--paper); font-size: 11px; font-weight: 700; }
+  svg .badge-free { fill: var(--paper); stroke: var(--ink-3); stroke-width: 1; }
+  svg .todo-frame { fill: none; stroke: var(--todo); stroke-width: 1.5; stroke-dasharray: 5 4; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 12.5px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend svg { width: 34px; height: 10px; flex: none; }
+
+  /* ---------- tables ---------- */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; }
+  th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-bottom: 1px solid var(--rule); }
+  tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+  thead th { font-size: 12.5px; color: var(--ink-3); font-weight: 500; letter-spacing: 0.04em; background: var(--paper); border-bottom: 1px solid var(--rule-strong); }
+  tbody th { font-weight: 700; white-space: nowrap; }
+  td .why { color: var(--ink-2); }
+  .pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 4px; white-space: nowrap; }
+  .pill.sign { background: var(--sign-tint); color: var(--sign); }
+  .pill.free { background: var(--bg); color: var(--ink-2); border: 1px solid var(--rule); }
+  .pill.done { background: var(--paper); color: var(--ok); border: 1px solid var(--ok); }
+  .pill.todo { background: var(--todo-tint); color: var(--todo); }
+  .pill.none { background: var(--bg); color: var(--ink-3); }
+
+  /* ---------- iCloud columns ---------- */
+  .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .panel { background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+  .panel.sync { border-color: var(--sync); box-shadow: inset 4px 0 0 var(--sync); }
+  .panel h3 { margin: 0; font-size: 15px; }
+  .panel h3 small { display: block; font-weight: 400; font-size: 12.5px; color: var(--ink-3); }
+  .panel ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+  .accounts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .account { border-radius: 8px; padding: 14px 18px; display: grid; gap: 4px; min-width: 0; }
+  .account.dev { background: var(--sign-tint); }
+  .account.daily { background: var(--sync-tint); }
+  .account b { font-size: 14.5px; }
+  .account.dev b { color: var(--sign); }
+  .account.daily b { color: var(--sync); }
+  .account p { margin: 0; color: var(--ink-2); }
+
+  /* ---------- sequence ---------- */
+  ol.flow { margin: 0; padding: 0; list-style: none; counter-reset: step; display: grid; gap: 0; background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; }
+  ol.flow li { counter-increment: step; display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--rule); align-items: baseline; }
+  ol.flow li:last-child { border-bottom: 0; }
+  ol.flow li::before { content: counter(step); font-family: var(--font-mono); font-weight: 500; color: var(--run); }
+  ol.flow li > span:first-child { min-width: 0; }
+  ol.flow .where { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+  @media (max-width: 560px) {
+    ol.flow li { grid-template-columns: 26px 1fr; }
+    ol.flow .where { grid-column: 2; white-space: normal; }
+  }
+
+  .basis { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .basis div { border-top: 2px solid var(--rule-strong); padding-top: 10px; min-width: 0; }
+  .basis b { display: block; margin-bottom: 4px; }
+  .basis p { margin: 0; color: var(--ink-2); }
+</style>
+
+<div class="page">
+  <header>
+    <h1>sk-icloud-keychain 構成図</h1>
+    <p class="lead">
+      SSH の秘密鍵は<strong>普段の Apple Account の iCloud キーチェーン</strong>で全 Mac に同期し、使うときの本人確認（Touch ID）は<strong>各 Mac の helper app</strong> がかけます。
+      Apple Developer Program に加入した<strong>開発用 Apple Account</strong> は、その helper app に署名するためだけに使います。
+    </p>
+    <div class="status">
+      <span class="chip ok">開発用 Mac：鍵の作成・署名・<code>-K</code>・sshd へのログイン（<code>verify-required</code>）まで確認済み</span>
+      <span class="chip ok">インストール先：<code>/Applications</code>（dylib は app に同梱）</span>
+      <span class="chip ok">MacBook Pro：インストール・両方向の同期・署名まで確認済み</span>
+      <span class="chip ok">テスト VM（OpenSSH 9.6p1）：2 台から同じ鍵でログイン確認済み</span>
+      <span class="chip ok">本番用の鍵 <code>ssh:icloud</code>：本番サーバに 2 台からログイン確認済み（お試し用 Host）</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-overview">
+    <h2 id="h-overview">全体の構成 <span class="tag">OVERVIEW</span></h2>
+    <div class="figure">
+      <svg viewBox="0 0 1100 720" role="img" aria-labelledby="fig-title fig-desc">
+        <title id="fig-title">sk-icloud-keychain の全体構成</title>
+        <desc id="fig-desc">2 台の Mac それぞれで ssh が provider dylib を読み込み、dylib が署名済みの helper app を起動する。helper は Touch ID のあと iCloud キーチェーンから鍵を取り出して署名する。iCloud キーチェーンが秘密鍵を、Dropbox が鍵ファイルを 2 台の間で同期する。開発用 Apple Account は helper app の署名用の証明書とプロファイルを各 Mac に発行する。</desc>
+        <defs>
+          <marker id="a-run" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-run" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="a-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-sync" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="a-sign" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-sign" d="M0,0 L10,5 L0,10 z"/></marker>
+        </defs>
+
+        <!-- server -->
+        <rect class="box" x="425" y="18" width="250" height="84" rx="6"/>
+        <text class="t-box" x="550" y="42" text-anchor="middle">SSH サーバ（sshd）</text>
+        <text class="t-sub" x="550" y="62" text-anchor="middle">authorized_keys に公開鍵 1 本</text>
+        <text class="t-mono" x="550" y="80" text-anchor="middle">verify-required sk-ssh-ed25519@…</text>
+        <text class="t-sub" x="550" y="96" text-anchor="middle">Mac が増えても登録は 1 本のまま</text>
+
+        <!-- ===== left Mac ===== -->
+        <rect class="mac" x="16" y="128" width="392" height="560" rx="12"/>
+        <text class="t-title" x="36" y="156">開発用 Mac（Mac mini）</text>
+        <text class="t-sub" x="36" y="174">Touch ID は Magic Keyboard</text>
+
+        <rect class="box-run" x="36" y="190" width="352" height="40" rx="6"/>
+        <text class="t-box" x="52" y="215">ssh / ssh-keygen</text>
+        <text class="t-sub" x="372" y="215" text-anchor="end">Homebrew・Apple 純正どちらも可</text>
+
+        <rect class="box" x="36" y="246" width="352" height="86" rx="6"/>
+        <text class="t-box" x="52" y="268">ssh-sk-helper</text>
+        <text class="t-sub" x="372" y="268" text-anchor="end">OpenSSH 同梱・変更なし</text>
+        <rect class="box-inner" x="52" y="280" width="320" height="40" rx="4"/>
+        <text class="t-mono" x="64" y="305" style="font-size:11.5px;fill:var(--ink)">libsk-icloud-keychain.dylib</text>
+        <rect class="badge-free" x="282" y="291" width="80" height="20" rx="10"/>
+        <text class="t-sub" x="322" y="305" text-anchor="middle" style="font-size:11px">app に同梱</text>
+
+        <text class="t-run" x="220" y="352">posix_spawn・パイプ</text>
+        <line class="ln-run" x1="212" y1="332" x2="212" y2="372" marker-end="url(#a-run)"/>
+
+        <rect class="box-sign" x="36" y="376" width="352" height="132" rx="6"/>
+        <text class="t-box" x="52" y="400">sk-icloud-keychain.app（helper）</text>
+        <rect class="badge-sign" x="296" y="386" width="80" height="20" rx="10"/>
+        <text class="badge-text" x="336" y="400" text-anchor="middle">署名必須</text>
+        <text class="t-sub" x="52" y="420">/Applications・Team FJYY683YHH で署名</text>
+        <text class="t-sub" x="52" y="437">プロファイル：この Mac 専用・期限 1 年</text>
+        <rect class="box-inner" x="52" y="448" width="150" height="48" rx="4"/>
+        <text class="t-box" x="127" y="468" text-anchor="middle" style="font-size:12px">Touch ID</text>
+        <text class="t-sub" x="127" y="486" text-anchor="middle">LAContext・生体のみ</text>
+        <rect class="box-inner" x="214" y="448" width="158" height="48" rx="4"/>
+        <text class="t-box" x="293" y="468" text-anchor="middle" style="font-size:12px">鍵を取り出し署名</text>
+        <text class="t-sub" x="293" y="486" text-anchor="middle">CryptoKit ed25519</text>
+
+        <line class="ln-run" x1="212" y1="508" x2="212" y2="540" marker-end="url(#a-run)"/>
+        <rect class="box" x="36" y="544" width="352" height="64" rx="6"/>
+        <text class="t-box" x="52" y="566">Data Protection Keychain</text>
+        <text class="t-sub" x="52" y="584">同期あり・WhenUnlocked</text>
+        <text class="t-mono" x="52" y="600">FJYY683YHH.org.izawa.sk-icloud-keychain</text>
+
+        <rect class="box" x="36" y="624" width="352" height="48" rx="6"/>
+        <text class="t-mono" x="52" y="645" style="font-size:11.5px;fill:var(--ink)">~/.ssh/id_ed25519_sk…</text>
+        <text class="t-sub" x="52" y="662">鍵ファイル：key handle と公開鍵だけ</text>
+
+        <!-- ===== right Mac ===== -->
+        <rect class="mac" x="692" y="128" width="392" height="560" rx="12"/>
+                <text class="t-title" x="712" y="156">MacBook Pro</text>
+        <text class="t-sub" x="1064" y="156" text-anchor="end">構築・同期確認済み</text>
+        <text class="t-sub" x="712" y="174">内蔵 Touch ID</text>
+
+        <rect class="box-run" x="712" y="190" width="352" height="40" rx="6"/>
+        <text class="t-box" x="728" y="215">ssh / ssh-keygen</text>
+        <text class="t-sub" x="1048" y="215" text-anchor="end">同じ ~/.ssh/config</text>
+
+        <rect class="box" x="712" y="246" width="352" height="86" rx="6"/>
+        <text class="t-box" x="728" y="268">ssh-sk-helper</text>
+        <text class="t-sub" x="1048" y="268" text-anchor="end">OpenSSH 同梱・変更なし</text>
+        <rect class="box-inner" x="728" y="280" width="320" height="40" rx="4"/>
+        <text class="t-mono" x="740" y="305" style="font-size:11.5px;fill:var(--ink)">libsk-icloud-keychain.dylib</text>
+        <rect class="badge-free" x="958" y="291" width="80" height="20" rx="10"/>
+        <text class="t-sub" x="998" y="305" text-anchor="middle" style="font-size:11px">app に同梱</text>
+
+        <text class="t-run" x="896" y="352">posix_spawn・パイプ</text>
+        <line class="ln-run" x1="888" y1="332" x2="888" y2="372" marker-end="url(#a-run)"/>
+
+        <rect class="box-sign" x="712" y="376" width="352" height="132" rx="6"/>
+        <text class="t-box" x="728" y="400">sk-icloud-keychain.app（helper）</text>
+        <rect class="badge-sign" x="972" y="386" width="80" height="20" rx="10"/>
+        <text class="badge-text" x="1012" y="400" text-anchor="middle">署名必須</text>
+        <text class="t-sub" x="728" y="420">この Mac で make install（同じ Team）</text>
+        <text class="t-sub" x="728" y="437">プロファイル：この Mac 専用・期限 1 年</text>
+        <rect class="box-inner" x="728" y="448" width="150" height="48" rx="4"/>
+        <text class="t-box" x="803" y="468" text-anchor="middle" style="font-size:12px">Touch ID</text>
+        <text class="t-sub" x="803" y="486" text-anchor="middle">LAContext・生体のみ</text>
+        <rect class="box-inner" x="890" y="448" width="158" height="48" rx="4"/>
+        <text class="t-box" x="969" y="468" text-anchor="middle" style="font-size:12px">鍵を取り出し署名</text>
+        <text class="t-sub" x="969" y="486" text-anchor="middle">CryptoKit ed25519</text>
+
+        <line class="ln-run" x1="888" y1="508" x2="888" y2="540" marker-end="url(#a-run)"/>
+        <rect class="box" x="712" y="544" width="352" height="64" rx="6"/>
+        <text class="t-box" x="728" y="566">Data Protection Keychain</text>
+        <text class="t-sub" x="728" y="584">同期あり・WhenUnlocked</text>
+        <text class="t-mono" x="728" y="600">FJYY683YHH.org.izawa.sk-icloud-keychain</text>
+
+        <rect class="box" x="712" y="624" width="352" height="48" rx="6"/>
+        <text class="t-mono" x="728" y="645" style="font-size:11.5px;fill:var(--ink)">~/.ssh/id_ed25519_sk…</text>
+        <text class="t-sub" x="728" y="662">鍵ファイル：key handle と公開鍵だけ</text>
+
+        <!-- ssh <-> server -->
+        <path class="ln-run" d="M388,204 C410,204 405,72 423,64" marker-end="url(#a-run)"/>
+        <path class="ln-run" d="M712,204 C690,204 695,72 677,64" marker-end="url(#a-run)"/>
+        <text class="t-run" x="404" y="114" text-anchor="end">署名で認証</text>
+        <text class="t-run" x="696" y="114">署名で認証</text>
+
+        <!-- developer account -->
+        <rect class="box-sign" x="440" y="378" width="220" height="104" rx="6"/>
+        <text class="t-sign" x="550" y="400" text-anchor="middle" style="font-size:12.5px">開発用 Apple Account</text>
+        <text class="t-sub" x="550" y="420" text-anchor="middle">Apple Developer Program 加入</text>
+        <text class="t-sub" x="550" y="438" text-anchor="middle">Team FJYY683YHH</text>
+        <text class="t-sub" x="550" y="458" text-anchor="middle">証明書・プロファイルを発行</text>
+        <text class="t-sub" x="550" y="474" text-anchor="middle">Mac を端末として登録</text>
+        <line class="ln-sign" x1="440" y1="430" x2="392" y2="430" marker-end="url(#a-sign)"/>
+        <line class="ln-sign" x1="660" y1="430" x2="708" y2="430" marker-end="url(#a-sign)"/>
+
+        <!-- iCloud keychain -->
+        <rect class="box-sync" x="440" y="528" width="220" height="96" rx="6"/>
+        <text class="t-sync" x="550" y="550" text-anchor="middle" style="font-size:12.5px">iCloud キーチェーン</text>
+        <text class="t-sub" x="550" y="569" text-anchor="middle">普段の Apple Account</text>
+        <text class="t-sub" x="550" y="587" text-anchor="middle">E2E 暗号化で同期</text>
+        <text class="t-sub" x="550" y="607" text-anchor="middle">秘密鍵＋メタデータ</text>
+        <line class="ln-sync" x1="440" y1="576" x2="392" y2="576" marker-start="url(#a-sync)" marker-end="url(#a-sync)"/>
+        <line class="ln-sync" x1="660" y1="576" x2="708" y2="576" marker-start="url(#a-sync)" marker-end="url(#a-sync)"/>
+
+        <!-- Dropbox -->
+        <rect class="box-sync" x="440" y="634" width="220" height="44" rx="6"/>
+        <text class="t-sync" x="550" y="652" text-anchor="middle">Dropbox（~/.ssh）</text>
+        <text class="t-sub" x="550" y="669" text-anchor="middle">鍵ファイル・config を共有</text>
+        <line class="ln-sync" x1="440" y1="650" x2="392" y2="650" marker-start="url(#a-sync)" marker-end="url(#a-sync)"/>
+        <line class="ln-sync" x1="660" y1="650" x2="708" y2="650" marker-start="url(#a-sync)" marker-end="url(#a-sync)"/>
+      </svg>
+    </div>
+    <div class="legend" aria-label="凡例">
+      <span><svg viewBox="0 0 34 10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" style="stroke:var(--run);stroke-width:2"/></svg>実行時の呼び出し</span>
+      <span><svg viewBox="0 0 34 10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" style="stroke:var(--sync);stroke-width:2;stroke-dasharray:7 5"/></svg>同期（iCloud・Dropbox）</span>
+      <span><svg viewBox="0 0 34 10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" style="stroke:var(--sign);stroke-width:2;stroke-dasharray:2 4;stroke-linecap:round"/></svg>ビルド時の署名</span>
+          </div>
+  </section>
+
+  <section aria-labelledby="h-sign">
+    <h2 id="h-sign">署名が必要だった部分 <span class="tag">CODE SIGNING</span></h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>部品</th><th>署名</th><th>理由・確かめたこと</th></tr></thead>
+        <tbody>
+          <tr>
+            <th>sk-icloud-keychain.app<br><span class="t-sub" style="font-weight:400;color:var(--ink-3)">helper</span></th>
+            <td><span class="pill sign">必須</span></td>
+            <td>Apple Development 証明書と Mac Team Provisioning Profile（Team <code>FJYY683YHH</code>）で署名。<br>
+              <span class="why">同期するキーチェーン項目を扱うには <code>keychain-access-groups</code> の権限が要り、この権限はプロファイル付きの署名でしか使えない。署名のない試作は <code>-34018</code>（必要な権限がない）で失敗した。</span></td>
+          </tr>
+          <tr>
+            <th>libsk-icloud-keychain.dylib<br><span style="font-weight:400;color:var(--ink-3);font-size:12px">provider</span></th>
+            <td><span class="pill free">不要</span></td>
+            <td>Keychain に直接触れず、helper を起動して結果を OpenSSH に返すだけ。<br>
+              <span class="why">Homebrew 10.6p1 と Apple 純正 10.3 の <code>ssh-keygen</code> の両方で、署名なしのまま読み込まれることを確認した。今は app の <code>Contents/Frameworks/</code> に同梱しているので、app と一緒に Team の署名が付き、隣の helper を自分で見つける。</span></td>
+          </tr>
+          <tr>
+            <th>ssh・ssh-keygen・sshd</th>
+            <td><span class="pill none">変更なし</span></td>
+            <td>既存の OpenSSH をそのまま使う。<br>
+              <span class="why">サーバからは普通の <code>sk-ssh-ed25519@openssh.com</code> 鍵に見えるので、YubiKey の鍵と並べて使える。</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">使った署名は Apple Development だけです。各 5 つまでの Developer ID Application・Installer 証明書は作っていません。開発用プロファイルは期限 1 年で、登録した Mac でしか起動しません（登録は 1 年に 100 台まで）。</p>
+  </section>
+
+  <section aria-labelledby="h-icloud">
+    <h2 id="h-icloud">2 台の Mac で共有されるもの <span class="tag">SYNC</span></h2>
+    <div class="accounts">
+      <div class="account daily">
+        <b>普段の Apple Account</b>
+        <p>Mac と iPhone で使っているアカウント。iCloud キーチェーンで秘密鍵を同期する役目だけを担う。</p>
+      </div>
+      <div class="account dev">
+        <b>開発用 Apple Account（Developer Program）</b>
+        <p>Xcode にサインインして helper app に署名する役目だけを担う。iCloud の同期には関わらない。</p>
+      </div>
+    </div>
+    <div class="split">
+      <div class="panel sync">
+        <h3>iCloud キーチェーンで同期<small>普段の Apple Account・E2E 暗号化</small></h3>
+        <ul>
+          <li>ed25519 の秘密鍵（32 バイト）</li>
+          <li>メタデータ：application、user、公開鍵、flags、作成日時。<code>list</code> と <code>ssh-keygen -K</code> はこれだけを読み、秘密鍵には触れない</li>
+          <li>読めるのは access group <code>FJYY683YHH.org.izawa.sk-icloud-keychain</code> に属する app、つまり同じ Team で署名した helper だけ</li>
+        </ul>
+      </div>
+      <div class="panel sync">
+        <h3>Dropbox で同期<small>iCloud ではなく、~/.ssh が Dropbox 上にあるため</small></h3>
+        <ul>
+          <li>鍵ファイル <code>~/.ssh/id_ed25519_sk…</code>。中身は key handle（<code>skick1:&lt;UUID&gt;</code>）と公開鍵だけで、秘密情報はない</li>
+          <li><code>~/.ssh/config</code>。provider のパスは <code>/Applications/sk-icloud-keychain.app/Contents/Frameworks/libsk-icloud-keychain.dylib</code> で、どの Mac でも同じ</li>
+          <li>Dropbox がなくても、鍵ファイルは <code>ssh-keygen -K</code> で作り直せる</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Mac ごとに別々<small>同期されない</small></h3>
+        <ul>
+          <li>指紋と Touch ID の判定（各 Mac の Secure Enclave）</li>
+          <li>署名用の証明書・秘密鍵とプロファイル（各 Mac の Xcode とログインキーチェーン。プロファイルは端末に紐づく）</li>
+          <li>helper app 本体（各 Mac でビルドする。コピーしても他の Mac では起動しない）</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-steps">
+    <h2 id="h-steps">各 Mac でやること <span class="tag">SETUP</span></h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>作業</th><th>開発用 Mac</th><th>MacBook Pro</th><th>何のため</th></tr></thead>
+        <tbody>
+          <tr><th>iCloud キーチェーンをオン</th><td><span class="pill done">済</span></td><td><span class="pill done">済</span></td><td class="why">普段の Apple Account で秘密鍵を同期するため</td></tr>
+          <tr><th>Touch ID に指紋を登録</th><td><span class="pill done">済</span></td><td><span class="pill done">済</span></td><td class="why">helper が本人確認に使う</td></tr>
+          <tr><th>Xcode に開発用 Apple Account でサインイン</th><td><span class="pill done">済</span></td><td><span class="pill done">済</span></td><td class="why">helper 用の証明書とプロファイルを取得するため</td></tr>
+          <tr><th>Mac を端末として登録</th><td><span class="pill done">済</span></td><td><span class="pill done">済</span></td><td class="why">開発用プロファイルは登録した Mac でしか起動しない（登録されていないと起動直後に kill される）。<code>make</code> がビルドの宛先をその Mac にしているので、自動で登録される</td></tr>
+          <tr><th>codesign の鍵アクセスを「常に許可」</th><td><span class="pill done">済</span></td><td><span class="pill none">求められなかった</span></td><td class="why">ビルドで署名用の秘密鍵を使うため（ログインパスワードは本人が入力）</td></tr>
+          <tr><th>app をビルドしてインストール</th><td><span class="pill done">済</span></td><td><span class="pill done">済</span></td><td class="why"><code>make install</code> で <code>/Applications</code> に入る。helper と provider dylib の両方が含まれる。app はその Mac 用の署名なので、コピーせず Mac ごとにビルドする。1 年ごとにやり直す</td></tr>
+          <tr><th><code>~/.ssh/config</code> に <code>SecurityKeyProvider</code></th><td><span class="pill done">お試し用 Host で設定済</span></td><td><span class="pill none">Dropbox で共通</span></td><td class="why">ssh に provider の場所を教える。この鍵を使う Host にだけ書く（<code>Host *</code> に書くと YubiKey の鍵が使えなくなる）</td></tr>
+          <tr><th>鍵ファイル</th><td><span class="pill done">作成済（<code>ssh:icloud</code>）</span></td><td><span class="pill none">Dropbox で共通</span> <span class="pill done">-K でも確認済み</span></td><td class="why"><code>ssh-keygen -t ed25519-sk -O resident -O verify-required</code> で 1 回だけ作る。共有されない環境では <code>ssh-keygen -K</code></td></tr>
+          <tr><th>サーバに公開鍵を登録</th><td colspan="2"><span class="pill done">本番サーバに登録済み（既存の鍵も併用）</span> <span class="pill done">テスト VM で 2 台とも確認済み</span></td><td class="why"><code>authorized_keys</code> に <code>verify-required</code> 付きで。Mac が増えても追加は不要</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-flow">
+    <h2 id="h-flow">ログイン時の流れ <span class="tag">SEQUENCE</span></h2>
+    <ol class="flow">
+      <li><span>ssh がサーバに接続し、鍵での署名を求められる</span><span class="where">ssh</span></li>
+      <li><span>ssh-sk-helper が provider dylib を読み込み、<code>sk_sign</code> を呼ぶ</span><span class="where">ssh-sk-helper</span></li>
+      <li><span>dylib が helper app を新しいパイプで起動し、application・key handle・署名対象を渡す</span><span class="where">dylib → helper</span></li>
+      <li><span>helper が key handle の鍵を探し、登録時の application と一致するか確かめる</span><span class="where">helper</span></li>
+      <li><span>Touch ID で本人確認する（生体認証のみ、パスワードでの代替なし）</span><span class="where">helper・LAContext</span></li>
+      <li><span>iCloud キーチェーンから秘密鍵を取り出し、<code>SHA256(application) ‖ flags ‖ counter ‖ SHA256(data)</code> に署名する</span><span class="where">helper・Keychain</span></li>
+      <li><span>flags に UP と UV、counter に Unix 時刻を入れて返し、sshd が <code>verify-required</code> で検証する</span><span class="where">dylib → ssh → sshd</span></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="h-basis">
+    <h2 id="h-basis">安全性の立脚点 <span class="tag">TRUST</span></h2>
+    <div class="basis">
+      <div><b>秘密鍵を誰が読めるか</b><p>iCloud キーチェーンの E2E 暗号化と access group。読めるのは同じ Team で署名した helper だけ。</p></div>
+      <div><b>本人確認</b><p>helper の LAContext（ソフトウェアでかけるゲート）。Secure Enclave が鍵の使用そのものを強制するわけではない。</p></div>
+      <div><b>helper が本物か</b><p>Apple Development の署名とプロファイル。改変すると署名が壊れ、access group を使えなくなる。</p></div>
+    </div>
+  </section>
+</div>
