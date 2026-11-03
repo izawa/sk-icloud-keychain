@@ -12,7 +12,7 @@ iCloud キーチェーンに保存した ed25519 鍵を、各 Mac の Touch ID �
 
 説明文は Mac の言語設定に合わせて日本語か英語で表示され、右下には sk-icloud-keychain のアイコンが付きます。
 
-方式を選んだ経緯は [docs/SSH 鍵保護方式 4 案の比較.html](docs/SSH%20鍵保護方式%204%20案の比較.html)、全体の構成は [docs/architecture.html](docs/architecture.html)、provider と helper の間の通信は [docs/protocol.md](docs/protocol.md) にまとめてあります。
+方式を選んだ経緯は [SSH 鍵保護方式 4 案の比較](https://izawa.github.io/sk-icloud-keychain/SSH%20%E9%8D%B5%E4%BF%9D%E8%AD%B7%E6%96%B9%E5%BC%8F%204%20%E6%A1%88%E3%81%AE%E6%AF%94%E8%BC%83.html)、全体の構成は [構成図](https://izawa.github.io/sk-icloud-keychain/architecture.html)、provider と helper の間の通信は [docs/protocol.md](docs/protocol.md) にまとめてあります。2 つの HTML は GitHub Pages で表示されます（元のファイルは `docs/` にあります）。
 
 ## 仕組み
 
