@@ -28,6 +28,22 @@ final class SKSignatureTests: XCTestCase {
     }
 }
 
+final class PromptTextTests: XCTestCase {
+    func testJapanese() {
+        XCTAssertEqual(PromptText.reason(.sign, application: "ssh:icloud", languages: ["ja-JP", "en-JP"]),
+                       "SSH 鍵「ssh:icloud」で署名")
+        XCTAssertEqual(PromptText.reason(.create, application: "ssh:icloud", languages: ["ja"]),
+                       "SSH 鍵「ssh:icloud」を作成")
+    }
+
+    func testOtherLanguagesUseEnglish() {
+        XCTAssertEqual(PromptText.reason(.delete, application: "ssh:icloud", languages: ["en-US", "ja-JP"]),
+                       "delete the SSH key for ssh:icloud")
+        XCTAssertEqual(PromptText.reason(.sign, application: "ssh:icloud", languages: []),
+                       "sign in with the SSH key for ssh:icloud")
+    }
+}
+
 final class KeyHandleTests: XCTestCase {
     func testRoundTrip() {
         let h = KeyHandle()

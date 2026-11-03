@@ -18,11 +18,11 @@
 		B00000000000000000000012 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = App/Info.plist; sourceTree = "<group>"; };
 		B00000000000000000000013 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "sk-icloud-keychain.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B00000000000000000000014 = {isa = PBXGroup; children = (B00000000000000000000015, B00000000000000000000016, B00000000000000000000017); sourceTree = "<group>"; };
-		B00000000000000000000015 = {isa = PBXGroup; children = (B00000000000000000000001, B00000000000000000000002, B00000000000000000000003, B00000000000000000000004, B00000000000000000000005, C00000000000000000000001); name = Sources; sourceTree = "<group>"; };
-		B00000000000000000000016 = {isa = PBXGroup; children = (B00000000000000000000011, B00000000000000000000012); name = App; sourceTree = "<group>"; };
+		B00000000000000000000015 = {isa = PBXGroup; children = (B00000000000000000000001, B00000000000000000000002, E00000000000000000000001, B00000000000000000000003, B00000000000000000000004, B00000000000000000000005, C00000000000000000000001); name = Sources; sourceTree = "<group>"; };
+		B00000000000000000000016 = {isa = PBXGroup; children = (B00000000000000000000011, B00000000000000000000012, D00000000000000000000001); name = App; sourceTree = "<group>"; };
 		B00000000000000000000017 = {isa = PBXGroup; children = (B00000000000000000000013, C00000000000000000000003); name = Products; sourceTree = "<group>"; };
-		B00000000000000000000018 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B00000000000000000000006, B00000000000000000000007, B00000000000000000000008, B00000000000000000000009, B00000000000000000000010); runOnlyForDeploymentPostprocessing = 0; };
-		B00000000000000000000019 = {isa = PBXNativeTarget; buildConfigurationList = B00000000000000000000021; buildPhases = (B00000000000000000000018, C00000000000000000000010); buildRules = (); dependencies = (C00000000000000000000009); name = "sk-icloud-keychain"; productName = "sk-icloud-keychain"; productReference = B00000000000000000000013; productType = "com.apple.product-type.application"; };
+		B00000000000000000000018 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B00000000000000000000006, B00000000000000000000007, E00000000000000000000002, B00000000000000000000008, B00000000000000000000009, B00000000000000000000010); runOnlyForDeploymentPostprocessing = 0; };
+		B00000000000000000000019 = {isa = PBXNativeTarget; buildConfigurationList = B00000000000000000000021; buildPhases = (B00000000000000000000018, D00000000000000000000003, C00000000000000000000010); buildRules = (); dependencies = (C00000000000000000000009); name = "sk-icloud-keychain"; productName = "sk-icloud-keychain"; productReference = B00000000000000000000013; productType = "com.apple.product-type.application"; };
 		B00000000000000000000020 = {isa = PBXProject; attributes = {LastUpgradeCheck = 2600; }; buildConfigurationList = B00000000000000000000023; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = B00000000000000000000014; productRefGroup = B00000000000000000000017; projectDirPath = ""; projectRoot = ""; targets = (B00000000000000000000019, C00000000000000000000005); };
 		B00000000000000000000022 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CODE_SIGN_ENTITLEMENTS = "App/sk-icloud-keychain.entitlements"; CODE_SIGN_IDENTITY = "Apple Development"; CODE_SIGN_STYLE = Automatic; DEVELOPMENT_TEAM = FJYY683YHH; ENABLE_HARDENED_RUNTIME = YES; INFOPLIST_FILE = App/Info.plist; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = "org.izawa.sk-icloud-keychain"; PRODUCT_NAME = "sk-icloud-keychain"; SDKROOT = macosx; SWIFT_VERSION = 5.0;}; name = Release; };
 		B00000000000000000000021 = {isa = XCConfigurationList; buildConfigurations = (B00000000000000000000022); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
@@ -39,6 +39,11 @@
 		C00000000000000000000009 = {isa = PBXTargetDependency; target = C00000000000000000000005; targetProxy = C00000000000000000000008; };
 		C00000000000000000000011 = {isa = PBXBuildFile; fileRef = C00000000000000000000003; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		C00000000000000000000010 = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 10; files = (C00000000000000000000011); name = "Embed Provider"; runOnlyForDeploymentPostprocessing = 0; };
+		D00000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = image.icns; path = App/Icon/AppIcon.icns; sourceTree = "<group>"; };
+		D00000000000000000000002 = {isa = PBXBuildFile; fileRef = D00000000000000000000001; };
+		D00000000000000000000003 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (D00000000000000000000002); runOnlyForDeploymentPostprocessing = 0; };
+		E00000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/SKCore/PromptText.swift"; sourceTree = "<group>"; };
+		E00000000000000000000002 = {isa = PBXBuildFile; fileRef = E00000000000000000000001; };
 	};
 	rootObject = B00000000000000000000020;
 }

@@ -54,7 +54,7 @@ func enroll(_ req: Message) throws -> Message {
         throw HelperError.exists("a resident key for \(application) already exists")
     }
 
-    try UserVerification.require(reason: "create an SSH key for \(application)")
+    try UserVerification.require(reason: PromptText.reason(.create, application: application))
     let key = Curve25519.Signing.PrivateKey()
     let meta = StoredKey(application: application, flags: flags, user: user,
                          publicKey: key.publicKey.rawRepresentation, created: Date())
@@ -82,7 +82,7 @@ func sign(_ req: Message) throws -> Message {
         throw HelperError.general("key \(handle.id) belongs to \(meta.application), not \(application)")
     }
 
-    try UserVerification.require(reason: "sign in with the SSH key for \(application)")
+    try UserVerification.require(reason: PromptText.reason(.sign, application: application))
     let key = try KeyStore.privateKey(handle)
     // Touch ID verified the user, so assert both presence and verification.
     let flags = SKFlags.userPresence | SKFlags.userVerification
@@ -118,7 +118,7 @@ func delete(_ arg: String) throws {
     guard let id = UUID(uuidString: arg) else { throw HelperError.usage }
     let handle = KeyHandle(id: id)
     let meta = try KeyStore.meta(handle)
-    try UserVerification.require(reason: "delete the SSH key for \(meta.application)")
+    try UserVerification.require(reason: PromptText.reason(.delete, application: meta.application))
     try KeyStore.delete(handle)
     print("deleted \(id) (\(meta.application))")
 }

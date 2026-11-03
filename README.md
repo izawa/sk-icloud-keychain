@@ -120,6 +120,8 @@ make test       # 単体テストと、provider が読み込まれるかのテ�
 tests/e2e.sh    # 鍵の作成・署名・検証・-K の通し確認（Touch ID が 2 回）
 ```
 
+app のアイコンは `helper/App/Icon/AppIcon.svg` が原本です。直したら `helper/App/Icon/make-icns.sh`（`rsvg-convert` が必要）で `AppIcon.icns` を作り直してください。Touch ID のダイアログの右下には、このアイコンが表示されます。
+
 `SK_ICLOUD_KEYCHAIN_DEBUG=1` を設定すると、provider と helper が標準エラーに経過を出します。`SK_ICLOUD_KEYCHAIN_HELPER` で helper の場所を差し替えられます。
 
 ## ライセンス

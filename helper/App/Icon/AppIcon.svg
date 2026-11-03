@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- macOS icon grid: 824px body inset 100px; drawn on a 120-unit tile -->
+  <g transform="translate(100 100) scale(6.8667)">
+    <rect width="120" height="120" rx="27" fill="#1D9E75"/>
+    <path d="M22 84 H94 A16 16 0 0 0 92 52 A25 25 0 0 0 46 42 A18 18 0 0 0 22 84 Z" fill="#FFFFFF"/>
+    <circle cx="60" cy="60" r="8" fill="#085041"/>
+    <path d="M55 63 L52 77 H68 L65 63 Z" fill="#085041"/>
+  </g>
+</svg>
