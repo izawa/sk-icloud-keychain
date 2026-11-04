@@ -1,0 +1,234 @@
+#!/usr/bin/env python3
+"""Show what an OpenSSH security key file (id_*_sk) refers to.
+
+A security key file looks like a private key ("BEGIN OPENSSH PRIVATE KEY")
+but holds only the public key, the application, flags and a key handle;
+the secret stays in the authenticator (here: iCloud Keychain). This tool
+prints those fields, and for sk-icloud-keychain keys also checks whether the
+key is in this Mac's iCloud Keychain (no Touch ID needed).
+
+usage: sk-key-info [--no-keychain] [FILE ...]
+
+With no FILE, every security key file in ~/.ssh is shown. FILE may be the
+key file or its .pub.
+"""
+
+import base64
+import glob
+import hashlib
+import os
+import struct
+import subprocess
+import sys
+
+MAGIC = b"openssh-key-v1\0"
+HANDLE_PREFIX = b"skick1:"
+FLAG_NAMES = [(0x01, "UP"), (0x04, "UV"), (0x10, "FORCE"), (0x20, "RESIDENT")]
+HELPER_PATHS = [
+    os.environ.get("SK_ICLOUD_KEYCHAIN_HELPER"),
+    "/Applications/sk-icloud-keychain.app/Contents/MacOS/sk-icloud-keychain",
+    os.path.expanduser(
+        "~/Applications/sk-icloud-keychain.app/Contents/MacOS/sk-icloud-keychain"),
+]
+
+
+class Reader:
+    def __init__(self, buf):
+        self.buf, self.pos = buf, 0
+
+    def u32(self):
+        if self.pos + 4 > len(self.buf):
+            raise ValueError("truncated key file")
+        (v,) = struct.unpack(">I", self.buf[self.pos:self.pos + 4])
+        self.pos += 4
+        return v
+
+    def string(self):
+        n = self.u32()
+        if self.pos + n > len(self.buf):
+            raise ValueError("truncated key file")
+        v = self.buf[self.pos:self.pos + n]
+        self.pos += n
+        return v
+
+    def byte(self):
+        if self.pos >= len(self.buf):
+            raise ValueError("truncated key file")
+        self.pos += 1
+        return self.buf[self.pos - 1]
+
+
+def fingerprint(blob):
+    return "SHA256:" + base64.b64encode(hashlib.sha256(blob).digest()).decode().rstrip("=")
+
+
+def parse_public_blob(blob):
+    r = Reader(blob)
+    info = {"type": r.string().decode()}
+    if info["type"].startswith("sk-ecdsa"):
+        r.string()  # curve
+    r.string()  # public key
+    if info["type"].startswith("sk-"):
+        info["application"] = r.string().decode()
+    info["fingerprint"] = fingerprint(blob)
+    return info
+
+
+def parse_key_file(text):
+    """Fields of an openssh-key-v1 file; None if it is not one."""
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "-----BEGIN OPENSSH PRIVATE KEY-----":
+        return None
+    b = base64.b64decode("".join(l for l in lines if l and not l.startswith("-----")))
+    if not b.startswith(MAGIC):
+        return None
+    r = Reader(b[len(MAGIC):])
+    cipher = r.string().decode()
+    r.string()  # kdf name
+    r.string()  # kdf options
+    if r.u32() != 1:
+        raise ValueError("files with more than one key are not supported")
+    info = parse_public_blob(r.string())
+    info["encrypted"] = cipher != "none"
+    if info["encrypted"] or not info["type"].startswith("sk-"):
+        return info  # nothing more to read, or a real private key: don't
+    p = Reader(r.string())
+    p.u32(), p.u32()  # check integers
+    p.string()  # key type
+    if info["type"].startswith("sk-ecdsa"):
+        p.string()  # curve
+    p.string()  # public key
+    p.string()  # application
+    info["flags"] = p.byte()
+    info["key_handle"] = p.string()
+    p.string()  # reserved
+    info["comment"] = p.string().decode(errors="replace")
+    return info
+
+
+def parse_pub_file(text):
+    parts = text.split(None, 2)
+    if len(parts) < 2:
+        raise ValueError("not an OpenSSH public key")
+    info = parse_public_blob(base64.b64decode(parts[1]))
+    info["comment"] = parts[2].strip() if len(parts) > 2 else ""
+    return info
+
+
+def load(path):
+    """Prefer the key file next to a .pub, since only it has the key handle."""
+    if path.endswith(".pub") and os.path.isfile(path[:-4]):
+        path = path[:-4]
+    with open(path, encoding="utf-8", errors="replace") as f:
+        text = f.read()
+    info = parse_key_file(text)
+    if info is None:
+        info = parse_pub_file(text)
+        info["pub_only"] = True
+    return path, info
+
+
+def keychain_handles():
+    """Key handles held in this Mac's iCloud Keychain, or None if unknown."""
+    helper = next((h for h in HELPER_PATHS if h and os.access(h, os.X_OK)), None)
+    if helper is None:
+        return None
+    try:
+        out = subprocess.run([helper, "list"], capture_output=True, text=True,
+                             timeout=30, stdin=subprocess.DEVNULL).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    fields = dict(l.split("=", 1) for l in out.splitlines() if "=" in l)
+    if fields.get("status") != "ok":
+        return None
+    return {bytes.fromhex(v) for k, v in fields.items() if k.endswith(".key_handle")}
+
+
+def describe_flags(flags):
+    names = [n for bit, n in FLAG_NAMES if flags & bit]
+    return "0x%02x (%s)" % (flags, " | ".join(names) or "none")
+
+
+def describe_handle(handle):
+    if handle.startswith(HANDLE_PREFIX):
+        return handle.decode("ascii", errors="replace")
+    return handle.hex() + "  (%d bytes)" % len(handle)
+
+
+def show(path, info, handles):
+    home = os.path.expanduser("~")
+    print(path.replace(home, "~", 1) if path.startswith(home) else path)
+    row = lambda k, v: print("  %-12s %s" % (k, v))
+    row("type", info["type"])
+    row("fingerprint", info["fingerprint"])
+    if not info["type"].startswith("sk-"):
+        row("note", "not a security key: this file holds a real private key"
+            if not info.get("pub_only") else "not a security key")
+        return
+    row("application", info["application"])
+    if info.get("pub_only"):
+        row("comment", info["comment"])
+        row("note", "only the .pub was found; the key handle is in the key file")
+        return
+    if info["encrypted"]:
+        row("note", "passphrase-protected; the key handle cannot be read")
+        return
+    handle = info["key_handle"]
+    row("flags", describe_flags(info["flags"]))
+    row("key handle", describe_handle(handle))
+    row("comment", info["comment"])
+    if handle.startswith(HANDLE_PREFIX):
+        row("provider", "sk-icloud-keychain")
+        if handles is not None:
+            row("keychain", "present on this Mac" if handle in handles else
+                "NOT on this Mac (not synced yet, or deleted)")
+    else:
+        row("provider", "a FIDO authenticator (e.g. a YubiKey)")
+
+
+def default_files():
+    files = []
+    for path in sorted(glob.glob(os.path.expanduser("~/.ssh/*"))):
+        if path.endswith(".pub") or not os.path.isfile(path):
+            continue
+        try:
+            with open(path, encoding="utf-8", errors="replace") as f:
+                info = parse_key_file(f.read(64 * 1024))
+        except (OSError, ValueError):
+            continue
+        if info and info["type"].startswith("sk-"):
+            files.append(path)
+    return files
+
+
+def main(argv):
+    args = argv[1:]
+    if any(a in ("-h", "--help") for a in args):
+        print(__doc__.strip())
+        return 0
+    check = "--no-keychain" not in args
+    files = [a for a in args if a != "--no-keychain"]
+    if not files:
+        files = default_files()
+        if not files:
+            print("no security key files in ~/.ssh", file=sys.stderr)
+            return 1
+    loaded, status = [], 0
+    for f in files:
+        try:
+            loaded.append(load(f))
+        except (OSError, ValueError, UnicodeDecodeError) as e:
+            print("%s: %s" % (f, e), file=sys.stderr)
+            status = 1
+    needs_keychain = any(i.get("key_handle", b"").startswith(HANDLE_PREFIX)
+                         for _, i in loaded)
+    handles = keychain_handles() if check and needs_keychain else None
+    for n, (path, info) in enumerate(loaded):
+        if n:
+            print()
+        show(path, info, handles)
+    return status
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

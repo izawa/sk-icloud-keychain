@@ -119,6 +119,32 @@ $H delete <UUID>        # 鍵を削除（Touch ID が必要。iCloud 経由で�
 
 `list` の `key_handle` は `skick1:<UUID>` を hex にしたものです。
 
+### 鍵ファイルの中身を確かめる
+
+`~/.ssh/id_ed25519_sk_icloud` は `BEGIN OPENSSH PRIVATE KEY` で始まりますが、security key の鍵ファイルなので秘密鍵は入っていません。入っているのは公開鍵・application・flags・key handle だけです。`tools/sk-key-info` で中身を表示できます（Touch ID は不要です）。
+
+```bash
+tools/sk-key-info                              # ~/.ssh の security key ファイルをすべて表示
+tools/sk-key-info ~/.ssh/id_ed25519_sk_icloud  # ファイルを指定（.pub を指定してもかまいません）
+```
+
+```
+~/.ssh/id_ed25519_sk_icloud
+  type         sk-ssh-ed25519@openssh.com
+  fingerprint  SHA256:pSNJtVwCc0W0gr1vZE15O1hE6viePVgVIo1nbcVx6Dc
+  application  ssh:icloud
+  flags        0x25 (UP | UV | RESIDENT)
+  key handle   skick1:9AE55D73-D732-4AAE-AB5B-4449DA33C764
+  comment      izawa sk-icloud-keychain
+  provider     sk-icloud-keychain
+  keychain     present on this Mac
+```
+
+- `flags` の `UV` は、鍵を作るときに `-O verify-required` を付けたことを示します。
+- `keychain` は、その鍵がこの Mac の iCloud キーチェーンにあるかどうかです（helper の `list` で確かめます。`--no-keychain` で省略できます）。`NOT on this Mac` なら、まだ同期されていないか、削除されています。
+- YubiKey などの鍵ファイルも表示できます。その場合 key handle はバイナリなので hex で表示されます。パスフレーズ付きのファイルは key handle を読めません。
+- security key ではない普通の秘密鍵ファイルを指定したときは、種類と指紋だけを表示し、中身は表示しません。
+
 ## 安全性と制約
 
 | 観点 | この方式での扱い |
