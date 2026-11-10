@@ -34,10 +34,22 @@ app の中に dylib を同梱しているので、インストールすると次
 
 - macOS 14 以降と、Touch ID（内蔵、または Touch ID 付き Magic Keyboard）
 - 普段の Apple Account で iCloud キーチェーンがオンになっていること
-- Xcode と、Apple Developer Program に加入した Apple Account（helper の署名用）。普段の Apple Account と別のアカウントでかまいません
+- 自分でビルドする場合だけ: Xcode と、Apple Developer Program に加入した Apple Account（helper の署名用）。普段の Apple Account と別のアカウントでかまいません
 - OpenSSH 8.2 以降。Homebrew の 10.6p1 と、macOS 純正の 10.3 で動作を確認しています
 
 ## インストール（Mac ごと）
+
+[Releases](https://github.com/izawa/sk-icloud-keychain/releases/latest) から `sk-icloud-keychain-<版>.dmg` をダウンロードして開き、`sk-icloud-keychain` を `Applications` へドラッグします。
+
+- Developer ID で署名し、Apple の公証を通してあります。Xcode も Apple Developer Program も要りません。
+- Mac の登録も要らないので、どの Mac にも同じ DMG から入れられます。
+- 鍵は access group `FJYY683YHH.org.izawa.sk-icloud-keychain` に保存されます。どの Mac でも同じ場所なので、iCloud キーチェーンで同期した鍵をそのまま使えます。
+
+入れたら「[鍵を作る](#鍵を作る最初の-1-回だけ)」に進んでください。
+
+### 自分でビルドする
+
+自分の Team で署名した helper を使いたい場合は、ソースからビルドします。**鍵の置き場所は自分の Team の access group になるので、DMG 版で作った鍵とは共有されません。**
 
 1. Xcode に開発用 Apple Account でサインインします（Settings → Apple Accounts）。
 2. **自分の Team ID と bundle ID を設定します（必須）。** helper は、あなたの Apple Developer Program の Team で署名する必要があります。設定ファイルの見本をコピーして、2 つの値を書き換えてください。
@@ -61,7 +73,7 @@ app の中に dylib を同梱しているので、インストールすると次
    make install
    ```
 
-app は、ビルドした Mac 専用の署名になります（開発用プロファイルは登録した Mac でしか起動しません）。他の Mac にはコピーせず、それぞれの Mac で `make install` してください。`make` はビルドの宛先をその Mac にしているので、新しい Mac は自動で Team に登録されます。プロファイルの期限は 1 年なので、1 年ごとに `make install` をやり直します。
+自分でビルドした app は、ビルドした Mac 専用の署名になります（開発用プロファイルは登録した Mac でしか起動しません）。他の Mac にはコピーせず、それぞれの Mac で `make install` してください。`make` はビルドの宛先をその Mac にしているので、新しい Mac は自動で Team に登録されます。プロファイルの期限は 1 年なので、1 年ごとに `make install` をやり直します。
 
 ビルド結果は `build/<ホスト名>/` に置かれます。リポジトリを Dropbox などで Mac の間で共有していても、互いのビルドを上書きしません。
 
@@ -149,13 +161,13 @@ tools/sk-key-info ~/.ssh/id_ed25519_sk_icloud  # ファイルを指定（.pub �
 
 | 観点 | この方式での扱い |
 |---|---|
-| 秘密鍵を読めるもの | iCloud キーチェーン（E2E 暗号化）と、access group `<TEAM_ID>.<BUNDLE_ID>` に属する app、つまり同じ Team で署名した helper だけ |
+| 秘密鍵を読めるもの | iCloud キーチェーン（E2E 暗号化）と、access group `<TEAM_ID>.<BUNDLE_ID>` に属する app、つまり同じ Team で署名した helper だけ。DMG 版では作者の Team（`FJYY683YHH`）なので、作者がその Team で署名した app を信頼することになります。それを避けたい場合は、自分でビルドしてください |
 | 本人確認 | helper が LocalAuthentication で Touch ID を求めます（生体認証のみ、パスワードでの代替なし）。これはソフトウェアでかけるゲートで、Secure Enclave が鍵の使用そのものを強制するわけではありません。生体認証の ACL を付けたキーチェーン項目は同期できないためです |
 | helper を呼べるもの | 同じユーザーで動くプロセスなら helper を起動できます。ただし署名のたびに Touch ID が要り、ダイアログには鍵の application（`ssh:…`）が表示されます |
 | 鍵の取り違え | 登録時と違う application での署名は拒否します |
 | counter | Mac をまたいで単調増加しないので、Unix 時刻を入れています。sshd は既定では counter を見ません |
-| 署名の期限 | 開発用プロファイルの期限は 1 年です。切れると helper が起動しなくなるので、`make install` をやり直します |
-| アカウント | 開発用 Apple Account を失うと Team ID を引き継げず、鍵を作り直してサーバに登録し直すことになります |
+| 署名の期限 | DMG 版は Developer ID 用のプロファイル（期限 2044 年）と、タイムスタンプ付きの署名なので、入れ直しは要らない見込みです。ただし、署名した証明書が切れた（2027-12-10）あとも helper が起動するかは、まだ確かめていません。自分でビルドした場合は開発用プロファイルの期限が 1 年で、切れると helper が起動しなくなるので、`make install` をやり直します |
+| アカウント | 署名した Team の Apple Account を失うと Team ID を引き継げず、鍵を作り直してサーバに登録し直すことになります（DMG 版では作者の Team） |
 
 ## 開発
 
@@ -166,6 +178,8 @@ tests/e2e.sh    # 鍵の作成・署名・検証・-K の通し確認（Touch ID
 ```
 
 app のアイコンは `helper/App/Icon/AppIcon.svg` が原本です。直したら `helper/App/Icon/make-icns.sh`（`rsvg-convert` が必要）で `AppIcon.icns` を作り直してください。Touch ID のダイアログの右下には、このアイコンが表示されます。アイコンを変えたときは、`helper/SKICloudKeychain.xcodeproj` の `CURRENT_PROJECT_VERSION` も上げてください。macOS はアイコンをバージョンごとにキャッシュするので、同じバージョンのままだと、すでに入れてある Mac では古いアイコンが出続けることがあります。`make install` は入れ直した app を LaunchServices に登録し直しますが、それでも古いアイコン（汎用のグリッド）のままなら、ログアウトしてログインし直すとキャッシュが消えて反映されます。
+
+配布用の DMG は `scripts/release.sh` で作ります（作者向け）。手順は [docs/release.md](docs/release.md) にあります。
 
 `spike/` は、同期するキーチェーン項目に署名が必要かを確かめた最初の実験の記録です。作者の Team ID のまま残してあり、ビルドには使いません。
 
