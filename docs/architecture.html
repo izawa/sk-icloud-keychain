@@ -86,6 +86,8 @@
   .chip::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; vertical-align: 1px; border-radius: 50%; background: var(--ink-3); }
   .chip.ok::before { background: var(--ok); }
   .chip.todo::before { background: var(--todo); }
+  .download { margin: 0; font-size: 15px; }
+  .download a { font-weight: 700; }
 
   section { display: grid; gap: 14px; }
   h2 {
@@ -182,11 +184,13 @@
     <h1>sk-icloud-keychain 構成図</h1>
     <p class="lead">
       SSH の秘密鍵は<strong>普段の Apple Account の iCloud キーチェーン</strong>で全 Mac に同期し、使うときの本人確認（Touch ID）は<strong>各 Mac の helper app</strong> がかけます。
-      Apple Developer Program に加入した<strong>開発用 Apple Account</strong> は、その helper app に署名するためだけに使います。
+      配布版の helper app は、作者の Team で Developer ID の署名と Apple の公証をした DMG で配っています。自分の Team で署名したい場合は、Apple Developer Program に加入した<strong>開発用 Apple Account</strong> で自分でビルドします。
     </p>
+    <p class="download"><a href="https://github.com/izawa/sk-icloud-keychain/releases/latest">ダウンロード（公証済みの DMG）</a> · <a href="https://github.com/izawa/sk-icloud-keychain#readme">README（インストールと使い方）</a></p>
     <div class="status">
       <span class="chip ok">開発用 Mac：鍵の作成・署名・<code>-K</code>・sshd へのログイン（<code>verify-required</code>）まで確認済み</span>
       <span class="chip ok">インストール先：<code>/Applications</code>（dylib は app に同梱）</span>
+      <span class="chip ok">配布：Developer ID の署名と公証をした DMG（v0.2.0）。既存の鍵で <code>list</code>・ログインまで確認済み</span>
       <span class="chip ok">MacBook Pro：インストール・両方向の同期・署名まで確認済み</span>
       <span class="chip ok">テスト VM（OpenSSH 9.6p1）：2 台から同じ鍵でログイン確認済み</span>
       <span class="chip ok">本番用の鍵 <code>ssh:icloud</code>：本番サーバに 2 台からログイン確認済み（お試し用 Host）</span>
@@ -348,7 +352,7 @@
           <tr>
             <th>sk-icloud-keychain.app<br><span class="t-sub" style="font-weight:400;color:var(--ink-3)">helper</span></th>
             <td><span class="pill sign">必須</span></td>
-            <td>Apple Development 証明書と Mac Team Provisioning Profile（Team <code>FJYY683YHH</code>）で署名。<br>
+            <td>配布版は Developer ID Application 証明書と Developer ID 用のプロファイル（Team <code>FJYY683YHH</code>）で署名し、公証を通す。自分でビルドする場合は Apple Development 証明書と開発用プロファイルで署名する。<br>
               <span class="why">同期するキーチェーン項目を扱うには <code>keychain-access-groups</code> の権限が要り、この権限はプロファイル付きの署名でしか使えない。署名のない試作は <code>-34018</code>（必要な権限がない）で失敗した。</span></td>
           </tr>
           <tr>
@@ -366,7 +370,7 @@
         </tbody>
       </table>
     </div>
-    <p class="note">使った署名は Apple Development だけです。各 5 つまでの Developer ID Application・Installer 証明書は作っていません。開発用プロファイルは期限 1 年で、登録した Mac でしか起動しません（登録は 1 年に 100 台まで）。</p>
+    <p class="note">配布版の Developer ID 用プロファイルは Mac の登録が要らず、どの Mac でも起動します。自分でビルドした場合の開発用プロファイルは期限 1 年で、登録した Mac でしか起動しません（登録は 1 年に 100 台まで）。どちらも鍵の置き場所は <code>&lt;Team ID&gt;.&lt;bundle ID&gt;</code> の access group なので、配布版と自分の Team で署名した版とでは鍵を共有しません。</p>
   </section>
 
   <section aria-labelledby="h-icloud">
