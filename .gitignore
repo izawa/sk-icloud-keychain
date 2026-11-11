@@ -10,3 +10,5 @@ handoff/*
 !handoff/README.md
 # Your own Team ID / bundle ID (see config.mk.example)
 config.mk
+# Notes for Claude Code (kept local)
+CLAUDE.md
