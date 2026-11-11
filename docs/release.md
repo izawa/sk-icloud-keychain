@@ -37,6 +37,9 @@ cp <ダウンロードしたファイル> ~/Library/Developer/Xcode/UserData/Pro
    scripts/release.sh
    ```
    archive・Developer ID での書き出し・access group の確かめ・DMG の作成と署名・公証・staple・確かめを順に行う。
+   DMG の見た目(開いたウインドウの背景と配置、マウントしたときのアイコン)は `scripts/make_dmg.sh` が Finder に設定させる。
+   画面のある Mac で、ほかに同じ名前の DMG をマウントしていない状態で実行する。初回は「Finder を操作しようとしています」の許可が要る。
+   背景やアイコンの絵は `scripts/make_dmg_art.py`(Pillow)の先頭の `CONFIG` で決まる。直したら実行して `Resources/DMG` の画像を作り直し、コミットする。
    できるのは `build/<ホスト名>/release/sk-icloud-keychain-<版>.dmg`。最後に SHA-256 が表示される。
    Apple に送らずに署名までを試すときは `--no-notarize` を付ける。
 4. **自分の Mac に入れる。** `build/<ホスト名>/release/export/sk-icloud-keychain.app` を `/Applications` に入れ、`sk-icloud-keychain list` と `ssh` で確かめる。
