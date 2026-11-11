@@ -72,11 +72,7 @@ VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/
 DMG="$OUT/$APP_NAME-$VERSION.dmg"
 
 echo "== $DMG"
-STAGING="$(mktemp -d)"
-trap 'rm -rf "$STAGING"' EXIT
-ditto "$APP" "$STAGING/$APP_NAME.app"
-ln -s /Applications "$STAGING/Applications"   # drag the app onto this in the opened window
-hdiutil create -volname "$APP_NAME $VERSION" -srcfolder "$STAGING" -fs HFS+ -format UDZO -ov "$DMG" >/dev/null
+scripts/make_dmg.sh "$APP" "$DMG" "$APP_NAME $VERSION"
 codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
 codesign --verify --verbose=2 "$DMG"
 
